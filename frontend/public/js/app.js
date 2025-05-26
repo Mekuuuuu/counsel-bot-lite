@@ -80,6 +80,7 @@ const navManager = {
 const chatManager = {
     chatHistory: JSON.parse(localStorage.getItem('chatHistory')) || [],
     isWaitingForResponse: false,
+    sessionId: localStorage.getItem('sessionId') || crypto.randomUUID(),
     
     init() {
         this.setupElements();
@@ -89,6 +90,14 @@ const chatManager = {
         this.setupVisibilityChange();
         this.setupGlobalKeyboardHandler();
         this.loadNavComponents();
+        
+        // Save session ID if it's new
+        if (!localStorage.getItem('sessionId')) {
+            localStorage.setItem('sessionId', this.sessionId);
+            console.log('Created new session ID:', this.sessionId);
+        } else {
+            console.log('Using existing session ID:', this.sessionId);
+        }
     },
 
     setupElements() {
@@ -181,11 +190,16 @@ const chatManager = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({
+                    prompt: '',  // Required by PromptRequest model
+                    session_id: this.sessionId,
+                    clear_history: false
+                })
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Failed to clear history');
+                    throw new Error(`Failed to clear history: ${response.status} ${response.statusText}`);
                 }
                 return response.json();
             })
@@ -322,6 +336,7 @@ const chatManager = {
         if (!message) return;
         
         this.setWaitingState(true);
+        console.log('Using session ID:', this.sessionId);
         
         try {
             // Get sentiment and mental health classification for user message
@@ -329,12 +344,18 @@ const chatManager = {
                 fetch(`${config.apiUrl}/analyze/sentiment`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: message })
+                    body: JSON.stringify({ 
+                        prompt: message,
+                        session_id: this.sessionId
+                    })
                 }),
                 fetch(`${config.apiUrl}/analyze/mental-health`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: message })
+                    body: JSON.stringify({ 
+                        prompt: message,
+                        session_id: this.sessionId
+                    })
                 })
             ]);
 
@@ -364,15 +385,17 @@ const chatManager = {
                 },
                 body: JSON.stringify({
                     prompt: message,
-                    clear_history: false
+                    clear_history: false,
+                    session_id: this.sessionId
                 })
             });
 
             if (!response.ok) {
-                throw new Error('Failed to get response');
+                throw new Error(`Failed to get response: ${response.status} ${response.statusText}`);
             }
 
             const result = await response.json();
+            console.log('Received response with key points:', result.key_points);
             
             // Add the response with key points
             this.addMessage(result.response, false);

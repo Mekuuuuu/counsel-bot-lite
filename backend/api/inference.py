@@ -8,6 +8,8 @@ from .models.sentiment_bert import predict_sentiment
 from .models.mental_health_bert import classify_mental_health
 from .models.gemini_counsel import generate_response, clear_history
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+import uuid
 
 # Load environment variables
 load_dotenv()
@@ -23,9 +25,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class TextRequest(BaseModel):
+class PromptRequest(BaseModel):
     prompt: str
-    clear_history: Optional[bool] = False
+    clear_history: bool = False
+    session_id: Optional[str] = None
 
 class SentimentResponse(BaseModel):
     sentiment: str
@@ -37,26 +40,28 @@ class MentalHealthResponse(BaseModel):
 
 class LlamaResponse(BaseModel):
     response: str
-    key_points: Optional[List[str]] = None
+    key_points: List[str]
 
 class KeyPointsResponse(BaseModel):
     key_points: List[str]
 
 class AnalysisResponse(BaseModel):
-    response: Optional[str] = None
-    sentiment: Optional[Dict[str, Any]] = None
-    mental_health: Optional[Dict[str, Any]] = None
-    key_points: Optional[List[str]] = None
+    response: str
+    sentiment: dict
+    mental_health: dict
+    key_points: List[str]
 
-@app.get("/key-points", response_model=KeyPointsResponse)
-async def get_key_points() -> KeyPointsResponse:
+@app.get("/key-points/{session_id}", response_model=KeyPointsResponse)
+async def get_key_points(session_id: str):
     try:
-        return KeyPointsResponse(key_points=gemini_counsel.memorized_key_messages)
+        from .models.gemini_counsel import gemini_counsel
+        session = gemini_counsel.get_session(session_id)
+        return KeyPointsResponse(key_points=session['memorized_key_messages'])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze/sentiment", response_model=SentimentResponse)
-async def analyze_sentiment(request: TextRequest) -> SentimentResponse:
+async def analyze_sentiment_endpoint(request: PromptRequest):
     try:
         result = predict_sentiment(request.prompt)
         return SentimentResponse(
@@ -67,7 +72,7 @@ async def analyze_sentiment(request: TextRequest) -> SentimentResponse:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze/mental-health", response_model=MentalHealthResponse)
-async def analyze_mental_health(request: TextRequest) -> MentalHealthResponse:
+async def analyze_mental_health_endpoint(request: PromptRequest):
     try:
         result = classify_mental_health(request.prompt)
         return MentalHealthResponse(
@@ -78,32 +83,41 @@ async def analyze_mental_health(request: TextRequest) -> MentalHealthResponse:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/clear/history")
-async def clear_history_endpoint():
+async def clear_history_endpoint(request: PromptRequest):
     try:
-        clear_history()
-        return {"status": "History cleared successfully"}
+        if not request.session_id:
+            raise HTTPException(status_code=400, detail="session_id is required")
+        clear_history(request.session_id)
+        return {"message": "History cleared successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate/counsel", response_model=LlamaResponse)
-async def generate_counsel(request: TextRequest) -> LlamaResponse:
+async def generate_counsel(request: PromptRequest):
     try:
-        response, key_points = generate_response(request.prompt)
+        # Generate a session ID if not provided
+        session_id = request.session_id or str(uuid.uuid4())
+        
+        # Clear history if requested
+        if request.clear_history:
+            clear_history(session_id)
+        
+        # Generate response
+        response, key_points = generate_response(request.prompt, session_id)
         return LlamaResponse(response=response, key_points=key_points)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze/all", response_model=AnalysisResponse)
-async def analyze_all(request: TextRequest) -> AnalysisResponse:
+async def analyze_all(request: PromptRequest):
     try:
-        # Get sentiment analysis
+        # Generate a session ID if not provided
+        session_id = request.session_id or str(uuid.uuid4())
+        
+        # Get all analyses
         sentiment_result = predict_sentiment(request.prompt)
-        
-        # Get mental health classification
         mental_health_result = classify_mental_health(request.prompt)
-        
-        # Generate response using Gemini
-        response, key_points = generate_response(request.prompt)
+        response, key_points = generate_response(request.prompt, session_id)
         
         return AnalysisResponse(
             response=response,
@@ -123,7 +137,6 @@ async def root():
     return {"message": "Welcome to CounselBot API"}
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(
         app,
         host=os.getenv("API_HOST", "0.0.0.0"),
