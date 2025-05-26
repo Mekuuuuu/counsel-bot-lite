@@ -8,6 +8,10 @@ from .storage_manager import storage_manager
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+# Constants for chat history management
+MAX_CHAT_HISTORY = 10  # Maximum number of message pairs to keep
+MAX_KEY_POINTS = 10    # Maximum number of key points to maintain
+
 class GeminiCounsel:
     def __init__(self):
         self.model = None
@@ -43,6 +47,12 @@ class GeminiCounsel:
     def clean_response(self, text):
         return re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
 
+    def trim_chat_history(self, session: dict):
+        """Trim chat history to keep only the most recent messages"""
+        if len(session['chat_history']) > MAX_CHAT_HISTORY:
+            print(f"Trimming chat history from {len(session['chat_history'])} to {MAX_CHAT_HISTORY} messages")
+            session['chat_history'] = session['chat_history'][-MAX_CHAT_HISTORY:]
+
     def extract_key_point(self, user_input: str, session_id: str):
         session = self.get_session(session_id)
         print(f"Extracting key points for session {session_id}")
@@ -71,6 +81,12 @@ Provide an updated list of key points that captures the most important emotional
             points = [line.strip() for line in cleaned_text.split('\n') if line.strip().startswith('- ')]
             # Remove the "- " prefix and store
             session['memorized_key_messages'] = [point[2:].strip() for point in points]
+            
+            # Trim key points if necessary
+            if len(session['memorized_key_messages']) > MAX_KEY_POINTS:
+                print(f"Trimming key points from {len(session['memorized_key_messages'])} to {MAX_KEY_POINTS}")
+                session['memorized_key_messages'] = session['memorized_key_messages'][-MAX_KEY_POINTS:]
+            
             print(f"Updated key points: {session['memorized_key_messages']}")
             
             # Save session after updating key points
@@ -127,6 +143,10 @@ Don't make markdown text in your response. If you need to make a list, be sure t
 
             # Update chat history
             session['chat_history'].append((prompt, response_text))
+            
+            # Trim chat history if necessary
+            self.trim_chat_history(session)
+            
             print(f"Updated chat history length: {len(session['chat_history'])}")
             
             # Save session after updating chat history
