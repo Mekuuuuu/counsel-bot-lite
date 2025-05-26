@@ -281,14 +281,9 @@ const chatManager = {
                     };
                 }
 
-                // Add key message flag for LLM responses
-                if (!entry.isUser) {
-                    baseEntry.isKeyMessage = entry.message.length > 100 || 
-                        entry.message.includes('?') || 
-                        entry.message.includes('!') ||
-                        entry.message.includes('important') ||
-                        entry.message.includes('suggest') ||
-                        entry.message.includes('recommend');
+                // Add key points for LLM responses
+                if (!entry.isUser && entry.key_points) {
+                    baseEntry.key_points = entry.key_points;
                 }
 
                 return baseEntry;
@@ -379,11 +374,12 @@ const chatManager = {
 
             const result = await response.json();
             
-            // Add the response without metadata
+            // Add the response with key points
             this.addMessage(result.response, false);
             this.chatHistory.push({ 
                 message: result.response, 
-                isUser: false
+                isUser: false,
+                key_points: result.key_points
             });
             
             this.saveChatHistory();
