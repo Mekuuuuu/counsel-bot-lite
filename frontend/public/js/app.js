@@ -78,25 +78,44 @@ const navManager = {
 
 // Chat Management
 const chatManager = {
-    chatHistory: JSON.parse(localStorage.getItem('chatHistory')) || [],
+    chatHistory: [],
     isWaitingForResponse: false,
-    sessionId: localStorage.getItem('sessionId') || crypto.randomUUID(),
+    sessionId: null,
     
     init() {
         this.setupElements();
         this.setupEventListeners();
+        this.initializeSession();
         this.loadChatHistory();
         this.focusInput();
         this.setupVisibilityChange();
         this.setupGlobalKeyboardHandler();
         this.loadNavComponents();
+    },
+
+    initializeSession() {
+        // Try to get existing session ID from localStorage
+        this.sessionId = localStorage.getItem('sessionId');
         
-        // Save session ID if it's new
-        if (!localStorage.getItem('sessionId')) {
+        if (!this.sessionId) {
+            // Generate new session ID if none exists
+            this.sessionId = crypto.randomUUID();
             localStorage.setItem('sessionId', this.sessionId);
             console.log('Created new session ID:', this.sessionId);
         } else {
             console.log('Using existing session ID:', this.sessionId);
+        }
+
+        // Load chat history from localStorage
+        const savedHistory = localStorage.getItem('chatHistory');
+        if (savedHistory) {
+            try {
+                this.chatHistory = JSON.parse(savedHistory);
+                console.log('Loaded chat history with', this.chatHistory.length, 'messages');
+            } catch (e) {
+                console.error('Error loading chat history:', e);
+                this.chatHistory = [];
+            }
         }
     },
 
@@ -274,6 +293,7 @@ const chatManager = {
 
     saveChatHistory() {
         localStorage.setItem('chatHistory', JSON.stringify(this.chatHistory));
+        console.log('Saved chat history with', this.chatHistory.length, 'messages');
     },
 
     exportChatHistory() {
@@ -321,6 +341,7 @@ const chatManager = {
 
     loadChatHistory() {
         if (this.chatMessages) {
+            console.log('Loading', this.chatHistory.length, 'messages into chat');
             this.chatHistory.forEach((msg, index) => {
                 setTimeout(() => {
                     this.addMessage(msg.message, msg.isUser);

@@ -2,6 +2,7 @@ import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 import re
+from .storage_manager import storage_manager
 
 # Load environment variables
 load_dotenv()
@@ -24,15 +25,20 @@ class GeminiCounsel:
     def get_session(self, session_id: str):
         """Get or create a session for a user"""
         if session_id not in self.sessions:
-            print(f"Creating new session for ID: {session_id}")
-            self.sessions[session_id] = {
-                'chat_history': [],
-                'memorized_key_messages': []
-            }
+            print(f"Loading session for ID: {session_id}")
+            # Load session from storage
+            self.sessions[session_id] = storage_manager.load_session(session_id)
+            print(f"Loaded session with chat history length: {len(self.sessions[session_id]['chat_history'])}")
         else:
             print(f"Retrieved existing session for ID: {session_id}")
             print(f"Current chat history length: {len(self.sessions[session_id]['chat_history'])}")
         return self.sessions[session_id]
+
+    def save_session(self, session_id: str):
+        """Save session data to persistent storage"""
+        if session_id in self.sessions:
+            print(f"Saving session for ID: {session_id}")
+            storage_manager.save_session(session_id, self.sessions[session_id])
 
     def clean_response(self, text):
         return re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
@@ -66,6 +72,10 @@ Provide an updated list of key points that captures the most important emotional
             # Remove the "- " prefix and store
             session['memorized_key_messages'] = [point[2:].strip() for point in points]
             print(f"Updated key points: {session['memorized_key_messages']}")
+            
+            # Save session after updating key points
+            self.save_session(session_id)
+            
             return session['memorized_key_messages']
         except Exception as e:
             print(f"Error extracting key points: {str(e)}")
@@ -118,6 +128,9 @@ Don't make markdown text in your response. If you need to make a list, be sure t
             # Update chat history
             session['chat_history'].append((prompt, response_text))
             print(f"Updated chat history length: {len(session['chat_history'])}")
+            
+            # Save session after updating chat history
+            self.save_session(session_id)
 
             return response_text, key_points
         except Exception as e:
@@ -131,6 +144,12 @@ Don't make markdown text in your response. If you need to make a list, be sure t
         session['chat_history'] = []
         session['memorized_key_messages'] = []
         print(f"History cleared. New chat history length: {len(session['chat_history'])}")
+        
+        # Save empty session
+        self.save_session(session_id)
+        
+        # Delete session file
+        storage_manager.delete_session(session_id)
 
 # Create singleton instance
 gemini_counsel = GeminiCounsel()

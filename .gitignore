@@ -1,6 +1,8 @@
 # Environment variables
 .env
 .env.*
+.env.local
+.env.*.local
 
 # Python
 __pycache__/
@@ -47,4 +49,11 @@ yarn-error.log*
 
 # Build
 /frontend/dist/
-/frontend/build/ 
+/frontend/build/
+
+# Storage
+backend/storage/
+storage/
+
+# Logs
+*.log 
