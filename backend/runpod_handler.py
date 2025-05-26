@@ -17,7 +17,10 @@ def handler(event):
         input_data = event["input"]
         
         # Create a TextRequest object
-        request = TextRequest(prompt=input_data.get("prompt", ""))
+        request = TextRequest(
+            prompt=input_data.get("prompt", ""),
+            clear_history=input_data.get("clear_history", False)
+        )
         
         # Determine which endpoint to call based on the input
         endpoint = input_data.get("endpoint", "all")

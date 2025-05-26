@@ -1,12 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 #import torch
 import os
 from dotenv import load_dotenv
 from .models.sentiment_bert import predict_sentiment
 from .models.mental_health_bert import classify_mental_health
-from .models.gemini_counsel import generate_response
+from .models.gemini_counsel import generate_response, clear_history
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables
@@ -25,6 +25,7 @@ app.add_middleware(
 
 class TextRequest(BaseModel):
     prompt: str
+    clear_history: Optional[bool] = False
 
 class SentimentResponse(BaseModel):
     sentiment: str
@@ -36,11 +37,13 @@ class MentalHealthResponse(BaseModel):
 
 class LlamaResponse(BaseModel):
     response: str
+    key_points: Optional[List[str]] = None
 
 class AnalysisResponse(BaseModel):
     response: Optional[str] = None
     sentiment: Optional[Dict[str, Any]] = None
     mental_health: Optional[Dict[str, Any]] = None
+    key_points: Optional[List[str]] = None
 
 @app.post("/analyze/sentiment", response_model=SentimentResponse)
 async def analyze_sentiment(request: TextRequest) -> SentimentResponse:
@@ -64,11 +67,19 @@ async def analyze_mental_health(request: TextRequest) -> MentalHealthResponse:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/clear/history")
+async def clear_history_endpoint():
+    try:
+        clear_history()
+        return {"status": "History cleared successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/generate/counsel", response_model=LlamaResponse)
 async def generate_counsel(request: TextRequest) -> LlamaResponse:
     try:
-        response = generate_response(request.prompt)
-        return LlamaResponse(response=response)
+        response, key_points = generate_response(request.prompt)
+        return LlamaResponse(response=response, key_points=key_points)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -81,13 +92,14 @@ async def analyze_all(request: TextRequest) -> AnalysisResponse:
         # Get mental health classification
         mental_health_result = classify_mental_health(request.prompt)
         
-        # Generate response using Llama
-        llama_response = generate_response(request.prompt)
+        # Generate response using Gemini
+        response, key_points = generate_response(request.prompt)
         
         return AnalysisResponse(
-            response=llama_response,
+            response=response,
             sentiment=sentiment_result,
-            mental_health=mental_health_result
+            mental_health=mental_health_result,
+            key_points=key_points
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,15 +1,11 @@
-// API Configuration
+// API Configuration - Updated version
+const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 const config = {
-    // Development API endpoint
-    devApiUrl: 'http://localhost:8000',
-    
-    // Production API endpoint (replace with your RunPod endpoint)
-    prodApiUrl: process.env.NEXT_PUBLIC_API_URL || 'https://your-runpod-endpoint.runpod.net',
-    
-    // Use production URL if not in development
-    apiUrl: process.env.NODE_ENV === 'development' 
+    // API endpoint - use localhost in development, RunPod in production
+    apiUrl: isDevelopment 
         ? 'http://localhost:8000'
-        : process.env.NEXT_PUBLIC_API_URL || 'https://your-runpod-endpoint.runpod.net',
+        : 'https://your-runpod-endpoint.runpod.net',
     
     // API endpoints
     endpoints: {

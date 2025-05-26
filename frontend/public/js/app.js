@@ -36,7 +36,7 @@ const navManager = {
         if (!navPlaceholder) return;
 
         try {
-            const response = await fetch('nav.html');
+            const response = await fetch('/public/nav.html');
             const html = await response.text();
             navPlaceholder.innerHTML = html;
         } catch (error) {
@@ -106,7 +106,9 @@ const chatManager = {
             this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
         }
         if (this.messageInput) {
-            this.messageInput.addEventListener('input', () => this.updateSendButtonState());
+            this.messageInput.addEventListener('input', () => {
+                this.updateSendButtonState();
+            });
             // Focus input when clicking anywhere in the chat container
             this.chatMessages.parentElement.addEventListener('click', () => this.focusInput());
         }
@@ -147,6 +149,7 @@ const chatManager = {
     },
 
     updateSendButtonState() {
+        if (!this.messageInput || !this.sendButton) return;
         const hasText = this.messageInput.value.trim().length > 0;
         this.sendButton.disabled = !hasText || this.isWaitingForResponse;
     },
@@ -162,10 +165,32 @@ const chatManager = {
 
     clearHistory() {
         if (confirm('Are you sure you want to clear the chat history?')) {
+            // Clear frontend first
             this.chatHistory = [];
             this.saveChatHistory();
             this.chatMessages.innerHTML = '';
             this.focusInput();
+
+            // Then clear backend history
+            fetch(`${config.apiUrl}/clear/history`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to clear history');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('History cleared successfully:', data);
+            })
+            .catch(error => {
+                console.error('Error clearing history:', error);
+                // Even if backend clearing fails, frontend is already cleared
+            });
         }
     },
 
@@ -252,6 +277,10 @@ const chatManager = {
         this.addMessage(message, true);
         this.chatHistory.push({ message, isUser: true });
         
+        // Clear the input box immediately after submission
+        this.messageInput.value = '';
+        this.updateSendButtonState();
+        
         try {
             // Get main response
             const response = await fetch(`${config.apiUrl}/generate/counsel`, {
@@ -260,7 +289,8 @@ const chatManager = {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    prompt: message
+                    prompt: message,
+                    clear_history: false
                 })
             });
 
@@ -293,19 +323,20 @@ const chatManager = {
                 message: result.response, 
                 isUser: false,
                 metadata: {
-                    sentiment: sentimentData.sentiment,
-                    mentalHealth: mentalHealthData.classification
+                    sentiment: sentimentData,
+                    mentalHealth: mentalHealthData
                 }
             });
             
-            // Save chat history
             this.saveChatHistory();
+            this.messageInput.value = '';
+            this.updateSendButtonState();
+            
         } catch (error) {
-            console.error('Error getting AI response:', error);
-            this.addMessage("I apologize, but I'm having trouble processing your message right now. Please try again later.", false);
+            console.error('Error:', error);
+            this.addMessage('Sorry, I encountered an error. Please try again.', false);
         } finally {
             this.setWaitingState(false);
-            this.messageInput.value = '';
         }
     }
 };
