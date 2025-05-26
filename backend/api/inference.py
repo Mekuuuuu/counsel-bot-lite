@@ -39,11 +39,21 @@ class LlamaResponse(BaseModel):
     response: str
     key_points: Optional[List[str]] = None
 
+# class KeyPointsResponse(BaseModel):
+#     key_points: List[str]
+
 class AnalysisResponse(BaseModel):
     response: Optional[str] = None
     sentiment: Optional[Dict[str, Any]] = None
     mental_health: Optional[Dict[str, Any]] = None
-    key_points: Optional[List[str]] = None
+    # key_points: Optional[List[str]] = None
+
+# @app.get("/key-points", response_model=KeyPointsResponse)
+# async def get_key_points() -> KeyPointsResponse:
+#     try:
+#         return KeyPointsResponse(key_points=gemini_counsel.memorized_key_messages)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze/sentiment", response_model=SentimentResponse)
 async def analyze_sentiment(request: TextRequest) -> SentimentResponse:

@@ -88,6 +88,7 @@ const chatManager = {
         this.focusInput();
         this.setupVisibilityChange();
         this.setupGlobalKeyboardHandler();
+        this.loadNavComponents();
     },
 
     setupElements() {
@@ -96,6 +97,7 @@ const chatManager = {
         this.messageInput = document.getElementById('message-input');
         this.clearHistoryBtn = document.getElementById('clear-history');
         this.sendButton = this.messageForm.querySelector('button[type="submit"]');
+        this.exportHistoryButton = document.getElementById('export-history');
     },
 
     setupEventListeners() {
@@ -111,6 +113,9 @@ const chatManager = {
             });
             // Focus input when clicking anywhere in the chat container
             this.chatMessages.parentElement.addEventListener('click', () => this.focusInput());
+        }
+        if (this.exportHistoryButton) {
+            this.exportHistoryButton.addEventListener('click', () => this.exportChatHistory());
         }
     },
 
@@ -257,6 +262,54 @@ const chatManager = {
         localStorage.setItem('chatHistory', JSON.stringify(this.chatHistory));
     },
 
+    exportChatHistory() {
+        // Create a copy of chat history with formatted data
+        const exportData = {
+            timestamp: new Date().toISOString(),
+            chatHistory: this.chatHistory.map(entry => {
+                const baseEntry = {
+                    message: entry.message,
+                    isUser: entry.isUser,
+                    timestamp: new Date().toISOString()
+                };
+
+                // Add analysis only for user messages
+                if (entry.isUser && entry.metadata) {
+                    baseEntry.analysis = {
+                        sentiment: entry.metadata.sentiment,
+                        mentalHealth: entry.metadata.mentalHealth
+                    };
+                }
+
+                // Add key message flag for LLM responses
+                if (!entry.isUser) {
+                    baseEntry.isKeyMessage = entry.message.length > 100 || 
+                        entry.message.includes('?') || 
+                        entry.message.includes('!') ||
+                        entry.message.includes('important') ||
+                        entry.message.includes('suggest') ||
+                        entry.message.includes('recommend');
+                }
+
+                return baseEntry;
+            })
+        };
+
+        // Convert to JSON string with pretty formatting
+        const jsonString = JSON.stringify(exportData, null, 2);
+        
+        // Create a blob and download link
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chat_history_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    },
+
     loadChatHistory() {
         if (this.chatMessages) {
             this.chatHistory.forEach((msg, index) => {
@@ -274,14 +327,40 @@ const chatManager = {
         if (!message) return;
         
         this.setWaitingState(true);
-        this.addMessage(message, true);
-        this.chatHistory.push({ message, isUser: true });
-        
-        // Clear the input box immediately after submission
-        this.messageInput.value = '';
-        this.updateSendButtonState();
         
         try {
+            // Get sentiment and mental health classification for user message
+            const [sentimentRes, mentalHealthRes] = await Promise.all([
+                fetch(`${config.apiUrl}/analyze/sentiment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: message })
+                }),
+                fetch(`${config.apiUrl}/analyze/mental-health`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: message })
+                })
+            ]);
+
+            const sentimentData = await sentimentRes.json();
+            const mentalHealthData = await mentalHealthRes.json();
+            
+            // Add user message with analysis metadata
+            this.addMessage(message, true);
+            this.chatHistory.push({ 
+                message, 
+                isUser: true,
+                metadata: {
+                    sentiment: sentimentData,
+                    mentalHealth: mentalHealthData
+                }
+            });
+            
+            // Clear the input box immediately after submission
+            this.messageInput.value = '';
+            this.updateSendButtonState();
+            
             // Get main response
             const response = await fetch(`${config.apiUrl}/generate/counsel`, {
                 method: 'POST',
@@ -300,37 +379,14 @@ const chatManager = {
 
             const result = await response.json();
             
-            // Get sentiment and mental health classification
-            const [sentimentRes, mentalHealthRes] = await Promise.all([
-                fetch(`${config.apiUrl}/analyze/sentiment`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: message })
-                }),
-                fetch(`${config.apiUrl}/analyze/mental-health`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: message })
-                })
-            ]);
-
-            const sentimentData = await sentimentRes.json();
-            const mentalHealthData = await mentalHealthRes.json();
-            
-            // Add the response with metadata
+            // Add the response without metadata
             this.addMessage(result.response, false);
             this.chatHistory.push({ 
                 message: result.response, 
-                isUser: false,
-                metadata: {
-                    sentiment: sentimentData,
-                    mentalHealth: mentalHealthData
-                }
+                isUser: false
             });
             
             this.saveChatHistory();
-            this.messageInput.value = '';
-            this.updateSendButtonState();
             
         } catch (error) {
             console.error('Error:', error);
@@ -338,6 +394,10 @@ const chatManager = {
         } finally {
             this.setWaitingState(false);
         }
+    },
+
+    handleInputChange() {
+        // Implementation of handleInputChange method
     }
 };
 

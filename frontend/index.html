@@ -43,10 +43,15 @@
 
             <div class="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl flex-1 flex flex-col overflow-hidden border border-neutral-200 dark:border-neutral-900 h-full">
                 <div class="chat-container">
-                    <!-- Clear History Button -->
-                    <button id="clear-history" class="clear-history">
-                        Clear History
-                    </button>
+                    <!-- Action Buttons -->
+                    <div class="flex p-4">
+                        <button id="clear-history" class="clear-history px-4 py-2">
+                            Clear History
+                        </button>
+                        <button id="export-history" class="export-history px-4 py-2">
+                            Export History
+                        </button>
+                    </div>
                     
                     <!-- Chat Messages -->
                     <div id="chat-messages" class="flex-1 overflow-y-auto">

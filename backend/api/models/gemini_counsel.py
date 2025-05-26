@@ -26,15 +26,32 @@ class GeminiCounsel:
 
     def extract_key_point(self, user_input):
         summarization_prompt = f"""
-You are an assistant trained to extract emotionally significant information from user input.
+You are an assistant trained to extract and maintain emotionally significant information, important events, and relevant personal entities from user conversations.
 
-Given the following user message, summarize the core emotional concern or key thought in very short bullet points.
+Given the following user message and current key points, update the key points list to include the most relevant emotional concerns, named individuals, important life events, and recurring themes. Ensure the list is concise but substantial, updating or removing points as needed to reflect the user's current state and concerns.
+
+Current key points:
+{chr(10).join(f"- {point}" for point in self.memorized_key_messages) if self.memorized_key_messages else "No key points yet."}
 
 User message: "{user_input}"
 
+Provide an updated list of key points that captures the most important emotional concerns from the conversation. Format each point as a single line starting with "- ".
 """
-        response = self.model.generate_content(summarization_prompt)
-        return self.clean_response(response.text)
+        try:
+            response = self.model.generate_content(summarization_prompt)
+            if not response or not response.text:
+                return []
+            
+            # Clean and process the response
+            cleaned_text = self.clean_response(response.text)
+            # Split into lines and filter valid points
+            points = [line.strip() for line in cleaned_text.split('\n') if line.strip().startswith('- ')]
+            # Remove the "- " prefix and store
+            self.memorized_key_messages = [point[2:].strip() for point in points]
+            return self.memorized_key_messages
+        except Exception as e:
+            print(f"Error extracting key points: {str(e)}")
+            return []
 
     def generate_response(self, prompt: str) -> tuple[str, list[str]]:
         system_prompt = """
@@ -48,14 +65,15 @@ You are CounselBot. Never refer to yourself by any other name. When the user sha
 """
         try:
             # Extract key point from user input
-            key_point = self.extract_key_point(prompt)
-            self.memorized_key_messages.append(key_point)
+            key_points = self.extract_key_point(prompt)
+            if not key_points:
+                key_points = []
 
             # Build the full prompt with context
             full_prompt = system_prompt + "\n\n"
 
-            if self.memorized_key_messages:
-                full_prompt += "Important context from earlier:\n" + "\n".join(f"- {m}" for m in self.memorized_key_messages) + "\n\n"
+            if key_points:
+                full_prompt += "Important context from earlier:\n" + "\n".join(f"- {m}" for m in key_points) + "\n\n"
 
             if self.chat_history:
                 full_prompt += "Chat history:\n"
@@ -67,13 +85,17 @@ You are CounselBot. Never refer to yourself by any other name. When the user sha
 
             # Generate response using Gemini
             response = self.model.generate_content(full_prompt)
+            if not response or not response.text:
+                raise Exception("Empty response from Gemini model")
+            
             response_text = self.clean_response(response.text)
 
             # Update chat history
             self.chat_history.append((prompt, response_text))
 
-            return response_text, self.memorized_key_messages
+            return response_text, key_points
         except Exception as e:
+            print(f"Error in generate_response: {str(e)}")
             raise Exception(f"Error generating response from CounselBot: {str(e)}")
 
     def clear_history(self):
