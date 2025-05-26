@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv
 from .models.sentiment_bert import predict_sentiment
 from .models.mental_health_bert import classify_mental_health
-from .models.llama_counsel import generate_response
+from .models.gemini_counsel import generate_response
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables

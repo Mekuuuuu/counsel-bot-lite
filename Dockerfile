@@ -7,7 +7,7 @@ ENV PYTHONPATH=/app
 
 WORKDIR /app
 
-# Install system dependencies (only if needed for your backend)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     git \
@@ -17,11 +17,11 @@ RUN apt-get update && apt-get install -y \
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend application code and .env file
+# Copy backend application code
 COPY backend /app/backend
 COPY .env /app/.env
 
-# (Optional) Create a directory for model weights if your app downloads models at runtime
+# Create a directory for model weights
 RUN mkdir -p /app/models
 
 # Expose the port the app runs on
