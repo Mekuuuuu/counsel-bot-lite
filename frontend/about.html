@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - CounselBot</title>
+    <script>
+        // Check system's theme preference on page load
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        const savedTheme = localStorage.getItem('theme');
+        const currentTheme = savedTheme ? savedTheme : systemTheme;
+        document.documentElement.classList.toggle('dark', currentTheme === 'dark');
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="public/css/styles.css">
+</head>
+<body class="relative font-sans selection:bg-blue-100 selection:text-blue-500 bg-light-neutral dark:text-white dark:bg-black dark:selection:bg-blue-900 dark:selection:text-blue-400">
+    <!-- Base components will be loaded here -->
+    <div id="nav-placeholder"></div>
+
+    <div class="content-area">
+        <div class="container mx-auto max-w-4xl px-4">
+            <!-- Mobile Title -->
+            <div class="mobile-title">
+                <div class="title">CounselBot</div>
+                <div class="subtitle">Your Mental Health Companion</div>
+            </div>
+
+            <div class="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl flex-1 flex flex-col overflow-hidden border border-neutral-200 dark:border-neutral-900 p-8">
+                <h1 class="text-3xl font-semibold mb-6">About CounselBot</h1>
+                
+                <div class="prose dark:prose-invert max-w-none">
+                    <p class="text-lg mb-4">
+                        CounselBot is an AI-powered mental health companion designed to provide support and guidance through conversation. Built with empathy and understanding, it aims to create a safe space for discussing mental health concerns.
+                    </p>
+                    
+                    <h2 class="text-2xl font-semibold mt-8 mb-4">Our Mission</h2>
+                    <p class="mb-4">
+                        We believe that everyone deserves access to mental health support. CounselBot is designed to be a first step in seeking help, providing a judgment-free environment for expressing thoughts and feelings.
+                    </p>
+
+                    <h2 class="text-2xl font-semibold mt-8 mb-4">How It Works</h2>
+                    <p class="mb-4">
+                        Using advanced natural language processing, CounselBot engages in meaningful conversations, offering support and guidance while maintaining confidentiality. It's designed to complement professional mental health services, not replace them.
+                    </p>
+
+                    <h2 class="text-2xl font-semibold mt-8 mb-4">Privacy & Security</h2>
+                    <p class="mb-4">
+                        Your privacy is our priority. All conversations are kept confidential and are not stored permanently. We use secure protocols to ensure your data remains protected.
+                    </p>
+
+                    <div class="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p class="text-blue-800 dark:text-blue-200">
+                            Note: CounselBot is not a replacement for professional mental health services. If you're experiencing a mental health emergency, please contact emergency services or a mental health professional.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+
+        function changeTheme() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+        }
+    </script>
+    <script type="module" src="public/js/config.js"></script>
+    <script type="module" src="public/js/app.js"></script>
+</body>
+</html> 

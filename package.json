@@ -1,0 +1,17 @@
+{
+  "name": "counsel-bot",
+  "version": "1.0.0",
+  "description": "AI-powered mental health companion",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel deploy"
+  },
+  "dependencies": {
+    "@runpod/api": "^1.0.0"
+  },
+  "devDependencies": {
+    "vercel": "^28.0.0"
+  }
+} 

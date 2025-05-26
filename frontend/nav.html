@@ -1,0 +1,46 @@
+<!-- Navigation Components -->
+<div class="nav-components">
+    <!-- Navigation Bar -->
+    <nav class="fixed left-1/2 transform -translate-x-1/2 lg:top-0 lg:bottom-auto lg:border-t-transparent lg:border-l-transparent lg:border-r-transparent lg:border-b border border-neutral-200 lg:border-b-neutral-100 bg-white z-[51] top-auto bottom-4 mb-4 w-full lg:max-w-none max-w-[90%] mx-auto rounded-full lg:rounded-none shadow-xl shadow-black/5 lg:shadow-none dark:bg-neutral-950 dark:lg:border-b-neutral-900 dark:border-neutral-900">
+        <div class="w-full flex lg:grid lg:grid-cols-5 items-center justify-between max-w-screen-3xl mx-auto md:px-10 min-[650px]:px-5 min-[400px]:px-3.5 xs:px-3  py-1">
+            <!-- Left side (logo/title) -->
+            <div class="items-center flex-shrink-0 mr-6 hidden md:flex">
+                <div class="group/all -ml-1 cursor-pointer">
+                    <div class="flex flex-col leading-tight group-hover/all:text-neutral-500 transition-colors relative dark:group-hover/all:text-neutral-400">
+                        <span class="text-lg font-medium group relative">CounselBot</span>
+                        <span class="text-base font-normal text-neutral-500 group-hover/all:text-neutral-400 transition-colors hidden xl:inline-block dark:group-hover/all:text-neutral-600 mt-[-2px]">Your Mental Health Companion</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <div class="relative flex items-center transition-opacity col-span-3 lg:gap-4 md:gap-3 gap-1.5 justify-between md:max-w-[calc(432px+(6px*5))] mx-auto truncate md:justify-between w-full lg:px-0 md:px-1.5 px-0 opacity-100">
+                <a href="/" class="nav-links site-links text-neutral-400 hover:text-black before:opacity-0 dark:hover:text-white py-4 md:px-4 transition-colors max-lg:truncate duration-150 before:absolute group font-medium md:w-auto w-full text-center before:inset-x-0 before:-bottom-[3px] before:h-[1px] before:bg-black max-md:before:hidden relative z-10 text-sm xs:text-base active:bg-white/10 active:rounded-lg active:text-white dark:active:bg-black/20">Chat</a>
+                <a href="/about" class="nav-links site-links text-neutral-400 hover:text-black before:opacity-0 dark:hover:text-white py-4 md:px-4 transition-colors max-lg:truncate duration-150 before:absolute group font-medium md:w-auto w-full text-center before:inset-x-0 before:-bottom-[3px] before:h-[1px] before:bg-black max-md:before:hidden relative z-10 text-sm xs:text-base active:bg-white/10 active:rounded-lg active:text-white dark:active:bg-black/20">About</a>
+            </div>
+
+            <!-- Toggle Light / Dark Mode -->
+            <div class="w-full h-full hidden items-center justify-end lg:flex">
+                <button class="font-medium flex items-center gap-2 group truncate" onclick="changeTheme()">
+                    <span class="dark:hidden">
+                        <!-- Sun icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 18a6 6 0 100-12 6 6 0 000 12z"/>
+                            <path fill-rule="evenodd" d="M12 1.5a.75.75 0 01.75.75v1a.75.75 0 01-1.5 0v-1A.75.75 0 0112 1.5zm0 18a.75.75 0 01.75.75v1a.75.75 0 01-1.5 0v-1a.75.75 0 01.75-.75zM4.22 4.22a.75.75 0 011.06 0l.71.71a.75.75 0 11-1.06 1.06l-.71-.71a.75.75 0 010-1.06zm13.79.71a.75.75 0 011.06-1.06l.71.71a.75.75 0 01-1.06 1.06l-.71-.71zM2.25 12a.75.75 0 01.75-.75h1a.75.75 0 010 1.5h-1A.75.75 0 012.25 12zm16.5 0a.75.75 0 01.75-.75h1a.75.75 0 010 1.5h-1a.75.75 0 01-.75-.75zM4.22 19.78a.75.75 0 010-1.06l.71-.71a.75.75 0 111.06 1.06l-.71.71a.75.75 0 01-1.06 0zm14.56-1.06a.75.75 0 011.06 0l.71.71a.75.75 0 11-1.06 1.06l-.71-.71a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+                        </svg>
+                    </span>
+                    <span class="hidden dark:inline">
+                        <!-- Moon icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                        </svg>
+                    </span>
+                    <!-- Toggle switch -->
+                    <div class="bg-neutral-200 dark:bg-neutral-700 rounded-full h-5 w-10 relative transition-colors duration-200 group-hover:bg-neutral-300 dark:group-hover:bg-neutral-600">
+                        <div id="toggle-indicator" class="h-4 w-4 rounded-full bg-white dark:bg-neutral-900 absolute top-0.5 left-0.5 transition-transform duration-200 transform dark:translate-x-5"></div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </nav>
+</div> 

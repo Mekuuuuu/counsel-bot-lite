@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CounselBot</title>
+    <script>
+        // Check system's theme preference on page load
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        const savedTheme = localStorage.getItem('theme');
+        const currentTheme = savedTheme ? savedTheme : systemTheme;
+        document.documentElement.classList.toggle('dark', currentTheme === 'dark');
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="public/css/styles.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .message-enter {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        .message-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 300ms, transform 300ms;
+        }
+    </style>
+</head>
+<body class="relative font-sans selection:bg-blue-100 selection:text-blue-500 bg-light-neutral dark:text-white dark:bg-black dark:selection:bg-blue-900 dark:selection:text-blue-400">
+    <!-- Base components will be loaded here -->
+    <div id="nav-placeholder"></div>
+
+    <div class="content-area">
+        <div class="container mx-auto max-w-4xl px-4 h-full lg:my-7">
+            <!-- Mobile Title -->
+            <div class="mobile-title">
+                <div class="title">CounselBot</div>
+                <div class="subtitle">Your Mental Health Companion</div>
+            </div>
+
+            <div class="bg-white dark:bg-neutral-950 rounded-2xl shadow-xl flex-1 flex flex-col overflow-hidden border border-neutral-200 dark:border-neutral-900 h-full">
+                <div class="chat-container">
+                    <!-- Clear History Button -->
+                    <button id="clear-history" class="clear-history">
+                        Clear History
+                    </button>
+                    
+                    <!-- Chat Messages -->
+                    <div id="chat-messages" class="flex-1 overflow-y-auto">
+                        <!-- Messages will be inserted here -->
+                    </div>
+                    
+                    <!-- Message Input -->
+                    <div class="p-4 border-t border-neutral-200 dark:border-neutral-900 bg-white dark:bg-neutral-950">
+                        <form id="message-form" class="flex gap-3">
+                            <input 
+                                type="text" 
+                                id="message-input" 
+                                class="flex-1 rounded-xl border border-neutral-200 dark:border-neutral-900 p-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all bg-white dark:bg-neutral-950 text-black dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                placeholder="Type your message..."
+                                autocomplete="off"
+                                autocorrect="off"
+                                autocapitalize="off"
+                                spellcheck="false"
+                                required
+                            >
+                            <button 
+                                type="submit"
+                                class="bg-blue-500 text-white px-6 py-3 rounded-xl hover:bg-blue-600 transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-500"
+                                disabled
+                            >
+                                <span>Send</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+
+        function changeTheme() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+        }
+    </script>
+    <script type="module" src="public/js/config.js"></script>
+    <script type="module" src="public/js/app.js"></script>
+</body>
+</html> 

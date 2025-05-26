@@ -1,0 +1,17 @@
+{
+    "version": 2,
+    "outputDirectory": "frontend",
+    "routes": [
+      {
+        "handle": "filesystem"
+      },
+      {
+        "src": "/about",
+        "dest": "/about.html"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "/index.html"
+      }
+    ]
+}
