@@ -196,40 +196,80 @@ const chatManager = {
         }
     },
 
-    clearHistory() {
-        if (confirm('Are you sure you want to clear the chat history?')) {
-            // Clear frontend first
-            this.chatHistory = [];
-            this.saveChatHistory();
-            this.chatMessages.innerHTML = '';
-            this.focusInput();
-
-            // Then clear backend history
-            fetch(`${config.apiUrl}/clear/history`, { 
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    prompt: '',  // Required by PromptRequest model
-                    session_id: this.sessionId,
-                    clear_history: false
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Failed to clear history: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('History cleared successfully:', data);
-            })
-            .catch(error => {
-                console.error('Error clearing history:', error);
-                // Even if backend clearing fails, frontend is already cleared
-            });
+    loadChatHistory() {
+        if (this.chatMessages) {
+            console.log('Loading', this.chatHistory.length, 'messages into chat');
+            
+            if (this.chatHistory.length === 0) {
+                this.showGreeting();
+            } else {
+                // Load existing chat history
+                this.chatHistory.forEach((msg, index) => {
+                    setTimeout(() => {
+                        this.addMessage(msg.message, msg.isUser, true);
+                    }, index * 100);
+                });
+            }
         }
+    },
+
+    showGreeting() {
+        // Array of varied greetings
+        const greetings = [
+            "Hello! I'm CounselBot, here to listen and support you. How are you feeling today?",
+            "Hi there! I'm CounselBot, your mental health companion. What's on your mind?",
+            "Welcome! I'm CounselBot, here to chat and help you process your thoughts. How are you doing?",
+            "Greetings! I'm CounselBot, ready to listen and support you. What would you like to talk about?",
+            "Hello! I'm CounselBot, here to provide a safe space for you to express yourself. How are you feeling?",
+            "Hi! I'm CounselBot, your AI companion, ready to chat about anything that's on your mind. How are you today?",
+            "Welcome! I'm CounselBot, here to help you navigate your thoughts and feelings. What's going on in your life?",
+            "Hello there! I'm CounselBot, ready to listen and support you. What would you like to discuss?",
+            "Hi! I'm CounselBot, here to chat and help you process your emotions. How are you feeling right now?",
+            "Greetings! I'm CounselBot, your mental health companion. What's been on your mind lately?"
+        ];
+        
+        // Get a random greeting
+        const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+        
+        // Create message container
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'flex justify-start message-enter py-2';
+        
+        // Create message bubble with typing indicator
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'max-w-[70%] rounded-2xl p-4 bg-white dark:bg-neutral-900 text-gray-800 dark:text-gray-200 rounded-bl-none shadow-sm border border-neutral-200 dark:border-neutral-800';
+        
+        const typingIndicator = document.createElement('div');
+        typingIndicator.className = 'typing-indicator';
+        typingIndicator.innerHTML = `
+            <span></span>
+            <span></span>
+            <span></span>
+        `;
+        
+        messageBubble.appendChild(typingIndicator);
+        messageDiv.appendChild(messageBubble);
+        this.chatMessages.appendChild(messageDiv);
+        messageDiv.classList.add('message-enter-active');
+        
+        // Simulate typing delay
+        setTimeout(() => {
+            messageBubble.innerHTML = randomGreeting;
+            messageBubble.style.transition = 'opacity 0.3s ease-out';
+            messageBubble.style.opacity = '0';
+            
+            // Fade in the greeting
+            setTimeout(() => {
+                messageBubble.style.opacity = '1';
+            }, 50);
+            
+            // Add to chat history
+            this.chatHistory.push({
+                message: randomGreeting,
+                isUser: false
+            });
+            this.saveChatHistory();
+        }, 1500); // Typing delay
     },
 
     addMessage(message, isUser = false, isHistorical = false) {
@@ -342,17 +382,6 @@ const chatManager = {
         URL.revokeObjectURL(url);
     },
 
-    loadChatHistory() {
-        if (this.chatMessages) {
-            console.log('Loading', this.chatHistory.length, 'messages into chat');
-            this.chatHistory.forEach((msg, index) => {
-                setTimeout(() => {
-                    this.addMessage(msg.message, msg.isUser, true);
-                }, index * 100);
-            });
-        }
-    },
-
     async handleMessageSubmit(e) {
         e.preventDefault();
         
@@ -449,6 +478,46 @@ const chatManager = {
 
     handleInputChange() {
         // Implementation of handleInputChange method
+    },
+
+    clearHistory() {
+        if (confirm('Are you sure you want to clear the chat history?')) {
+            // Clear frontend first
+            this.chatHistory = [];
+            this.saveChatHistory();
+            this.chatMessages.innerHTML = '';
+            this.focusInput();
+
+            // Show new greeting
+            this.showGreeting();
+
+            // Then clear backend history
+            fetch(`${config.apiUrl}/clear/history`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    prompt: '',  // Required by PromptRequest model
+                    session_id: this.sessionId,
+                    clear_history: false
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to clear history: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('History cleared successfully:', data);
+                showGreeting();
+            })
+            .catch(error => {
+                console.error('Error clearing history:', error);
+                // Even if backend clearing fails, frontend is already cleared
+            });
+        }
     }
 };
 
