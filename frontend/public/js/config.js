@@ -5,7 +5,7 @@ const config = {
     // API endpoint - use localhost in development, RunPod endpoint URL from Vercel env var in production
     apiUrl: isDevelopment 
         ? 'http://localhost:8000'
-        : process.env.NEXT_PUBLIC_API_URL, // Use the Vercel environment variable
+        : window.NEXT_PUBLIC_API_URL, // Use the Vercel environment variable
     
     // API endpoints (these are logical names, the actual call goes through the single RunPod endpoint)
     endpoints: {
