@@ -232,9 +232,9 @@ const chatManager = {
         }
     },
 
-    addMessage(message, isUser = false) {
+    addMessage(message, isUser = false, isHistorical = false) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'} message-enter`;
+        messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'} message-enter py-2`;
         
         const messageBubble = document.createElement('div');
         messageBubble.className = `max-w-[70%] rounded-2xl p-4 ${
@@ -243,7 +243,19 @@ const chatManager = {
                 : 'bg-white dark:bg-neutral-900 text-gray-800 dark:text-gray-200 rounded-bl-none shadow-sm border border-neutral-200 dark:border-neutral-800'
         }`;
         
-        if (!isUser) {
+        messageBubble.textContent = message;
+        messageDiv.appendChild(messageBubble);
+        this.chatMessages.appendChild(messageDiv);
+        messageDiv.classList.add('message-enter-active');
+
+        // Add typing indicator after user message, but only for new messages
+        if (isUser && !isHistorical) {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'flex justify-start message-enter py-2 typing-container';
+            
+            const typingBubble = document.createElement('div');
+            typingBubble.className = 'max-w-[70%] rounded-2xl p-4 bg-white dark:bg-neutral-900 text-gray-800 dark:text-gray-200 rounded-bl-none shadow-sm border border-neutral-200 dark:border-neutral-800';
+            
             const typingIndicator = document.createElement('div');
             typingIndicator.className = 'typing-indicator';
             typingIndicator.innerHTML = `
@@ -251,21 +263,12 @@ const chatManager = {
                 <span></span>
                 <span></span>
             `;
-            messageBubble.appendChild(typingIndicator);
-            this.chatMessages.appendChild(messageDiv);
             
-            setTimeout(() => {
-                messageBubble.innerHTML = message;
-                messageDiv.classList.add('message-enter-active');
-                this.setWaitingState(false);
-            }, 1000);
-        } else {
-            messageBubble.textContent = message;
-            messageDiv.classList.add('message-enter-active');
+            typingBubble.appendChild(typingIndicator);
+            typingDiv.appendChild(typingBubble);
+            this.chatMessages.appendChild(typingDiv);
+            typingDiv.classList.add('message-enter-active');
         }
-        
-        messageDiv.appendChild(messageBubble);
-        this.chatMessages.appendChild(messageDiv);
         
         this.chatMessages.scrollTo({
             top: this.chatMessages.scrollHeight,
@@ -344,7 +347,7 @@ const chatManager = {
             console.log('Loading', this.chatHistory.length, 'messages into chat');
             this.chatHistory.forEach((msg, index) => {
                 setTimeout(() => {
-                    this.addMessage(msg.message, msg.isUser);
+                    this.addMessage(msg.message, msg.isUser, true);
                 }, index * 100);
             });
         }
@@ -418,6 +421,10 @@ const chatManager = {
             const result = await response.json();
             console.log('Received response with key points:', result.key_points);
             
+            // Remove any existing typing indicators first
+            const existingTypingContainers = this.chatMessages.querySelectorAll('.typing-container');
+            existingTypingContainers.forEach(container => container.remove());
+            
             // Add the response with key points
             this.addMessage(result.response, false);
             this.chatHistory.push({ 
@@ -430,6 +437,10 @@ const chatManager = {
             
         } catch (error) {
             console.error('Error:', error);
+            // Remove any existing typing indicators first
+            const existingTypingContainers = this.chatMessages.querySelectorAll('.typing-container');
+            existingTypingContainers.forEach(container => container.remove());
+            
             this.addMessage('Sorry, I encountered an error. Please try again.', false);
         } finally {
             this.setWaitingState(false);
