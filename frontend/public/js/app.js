@@ -329,15 +329,12 @@ const chatManager = {
                 const baseEntry = {
                     message: entry.message,
                     isUser: entry.isUser,
-                    timestamp: new Date().toISOString()
+                    timestamp: entry.timestamp || new Date().toISOString()
                 };
 
                 // Add analysis only for user messages
-                if (entry.isUser && entry.metadata) {
-                    baseEntry.analysis = {
-                        sentiment: entry.metadata.sentiment,
-                        mentalHealth: entry.metadata.mentalHealth
-                    };
+                if (entry.isUser && entry.analysis) {
+                    baseEntry.analysis = entry.analysis;
                 }
 
                 // Add key points for LLM responses
