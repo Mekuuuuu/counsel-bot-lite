@@ -412,17 +412,25 @@ const chatManager = {
                     // Extract response data
                     const responseData = result.output.data;
                     
+                    // Save user message with analysis metadata
+                    this.chatHistory.push({
+                        message: message,
+                        isUser: true,
+                        timestamp: new Date().toISOString(),
+                        analysis: {
+                            sentiment: responseData.sentiment,
+                            mentalHealth: responseData.mental_health
+                        }
+                    });
+                    
                     // Add AI response to chat
                     this.addMessage(responseData.response, false);
                     
-                    // Save to chat history with metadata
+                    // Save AI response to chat history
                     this.chatHistory.push({
                         message: responseData.response,
                         isUser: false,
-                        metadata: {
-                            sentiment: responseData.sentiment,
-                            mentalHealth: responseData.mental_health
-                        },
+                        timestamp: new Date().toISOString(),
                         key_points: responseData.key_points
                     });
                 }
@@ -457,7 +465,8 @@ const chatManager = {
                 this.chatHistory.push({ 
                     message, 
                     isUser: true,
-                    metadata: {
+                    timestamp: new Date().toISOString(),
+                    analysis: {
                         sentiment: sentimentData,
                         mentalHealth: mentalHealthData
                     }
@@ -492,6 +501,7 @@ const chatManager = {
                 this.chatHistory.push({ 
                     message: result.response, 
                     isUser: false,
+                    timestamp: new Date().toISOString(),
                     key_points: result.key_points
                 });
             }
