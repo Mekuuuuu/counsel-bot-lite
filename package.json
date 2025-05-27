@@ -5,11 +5,9 @@
   "main": "app.js",
   "type": "module",
   "scripts": {
-    "dev": "",
-    "build": "node build-config.js",
-    "start": ""
+    "dev": "vercel dev",
+    "deploy": "vercel deploy"
   },
-  "keywords": [],
   "dependencies": {
     "@runpod/api": "^1.0.0"
   },
