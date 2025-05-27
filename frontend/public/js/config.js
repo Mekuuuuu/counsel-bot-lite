@@ -7,6 +7,16 @@ const config = {
         ? 'http://localhost:8000'
         : window.NEXT_PUBLIC_API_URL, // Use the Vercel environment variable
     
+    // RunPod API key - only used in production
+    apiKey: isDevelopment 
+        ? null  // No API key needed for local development
+        : window.NEXT_PUBLIC_RUNPOD_API_KEY, // Use the Vercel environment variable
+    
+    // RunPod status endpoint
+    statusUrl: isDevelopment
+        ? 'http://localhost:8000/status'
+        : 'https://api.runpod.ai/v2/xkuvxoekj7yphp/status',
+    
     // API endpoints (these are logical names, the actual call goes through the single RunPod endpoint)
     endpoints: {
         // These keys can be used as the 'endpoint' value in the request payload sent to the RunPod handler
@@ -17,14 +27,20 @@ const config = {
         keyPoints: 'key-points',
         clearHistory: 'clear-history',
         // Note: The RunPod handler takes the endpoint name in the request body, not the URL path
-    }
+    },
+
+    // Flag to determine if we're using RunPod
+    useRunPod: !isDevelopment
 };
 
-// Check if NEXT_PUBLIC_API_URL is set in production
-if (!isDevelopment && !config.apiUrl) {
-    console.error('Environment variable NEXT_PUBLIC_API_URL is not set!');
-    // Optionally display an error to the user or use a fallback URL
-    // config.apiUrl = 'https://your-default-fallback-runpod-url.runpod.net'; // Example fallback
+// Check if required environment variables are set in production
+if (!isDevelopment) {
+    if (!config.apiUrl) {
+        console.error('Environment variable NEXT_PUBLIC_API_URL is not set!');
+    }
+    if (!config.apiKey) {
+        console.error('Environment variable NEXT_PUBLIC_RUNPOD_API_KEY is not set!');
+    }
 }
 
 export default config; 

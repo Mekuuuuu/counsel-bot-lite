@@ -316,24 +316,6 @@ const chatManager = {
         });
     },
 
-    getAIResponse(message) {
-        message = message.toLowerCase();
-        
-        if (message.includes('hello') || message.includes('hi')) {
-            return "Hello! I'm here to help. How are you feeling today?";
-        } else if (message.includes('sad') || message.includes('depressed')) {
-            return "I'm sorry to hear that you're feeling down. Would you like to talk about what's bothering you?";
-        } else if (message.includes('happy') || message.includes('good')) {
-            return "I'm glad to hear you're feeling positive! What's making you feel this way?";
-        } else if (message.includes('anxious') || message.includes('worried')) {
-            return "Anxiety can be challenging. Would you like to discuss what's causing your anxiety?";
-        } else if (message.includes('thank')) {
-            return "You're welcome! I'm here whenever you need to talk.";
-        } else {
-            return "I understand. Could you tell me more about how you're feeling?";
-        }
-    },
-
     saveChatHistory() {
         localStorage.setItem('chatHistory', JSON.stringify(this.chatHistory));
         console.log('Saved chat history with', this.chatHistory.length, 'messages');
@@ -386,94 +368,184 @@ const chatManager = {
         e.preventDefault();
         
         const message = this.messageInput.value.trim();
-        if (!message) return;
+        if (!message || this.isWaitingForResponse) return;
         
+        // Clear input and disable it while waiting
+        this.messageInput.value = '';
         this.setWaitingState(true);
-        console.log('Using session ID:', this.sessionId);
+        
+        // Add user message to chat
+        this.addMessage(message, true);
         
         try {
-            // Get sentiment and mental health classification for user message
-            const [sentimentRes, mentalHealthRes] = await Promise.all([
-                fetch(`${config.apiUrl}/analyze/sentiment`, {
+            if (config.useRunPod) {
+                // RunPod API flow
+                const response = await fetch(config.apiUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        prompt: message,
-                        session_id: this.sessionId
+                    headers: {
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        input: {
+                            prompt: message,
+                            endpoint: 'all',
+                            session_id: this.sessionId
+                        }
                     })
-                }),
-                fetch(`${config.apiUrl}/analyze/mental-health`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        prompt: message,
-                        session_id: this.sessionId
-                    })
-                })
-            ]);
+                });
 
-            const sentimentData = await sentimentRes.json();
-            const mentalHealthData = await mentalHealthRes.json();
-            
-            // Add user message with analysis metadata
-            this.addMessage(message, true);
-            this.chatHistory.push({ 
-                message, 
-                isUser: true,
-                metadata: {
-                    sentiment: sentimentData,
-                    mentalHealth: mentalHealthData
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            });
-            
-            // Clear the input box immediately after submission
-            this.messageInput.value = '';
-            this.updateSendButtonState();
-            
-            // Get main response
-            const response = await fetch(`${config.apiUrl}/generate/counsel`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    prompt: message,
-                    clear_history: false,
-                    session_id: this.sessionId
-                })
-            });
 
-            if (!response.ok) {
-                throw new Error(`Failed to get response: ${response.status} ${response.statusText}`);
+                const data = await response.json();
+                
+                // If the request is queued, poll for status
+                if (data.status === 'IN_QUEUE' || data.status === 'IN_PROGRESS') {
+                    const result = await this.pollForResult(data.id);
+                    
+                    // Remove typing indicator
+                    const existingTypingContainers = this.chatMessages.querySelectorAll('.typing-container');
+                    existingTypingContainers.forEach(container => container.remove());
+                    
+                    // Extract response data
+                    const responseData = result.output.data;
+                    
+                    // Add AI response to chat
+                    this.addMessage(responseData.response, false);
+                    
+                    // Save to chat history with metadata
+                    this.chatHistory.push({
+                        message: responseData.response,
+                        isUser: false,
+                        metadata: {
+                            sentiment: responseData.sentiment,
+                            mentalHealth: responseData.mental_health
+                        },
+                        key_points: responseData.key_points
+                    });
+                }
+            } else {
+                // Local development flow
+                console.log('Using session ID:', this.sessionId);
+                
+                // Get sentiment and mental health classification for user message
+                const [sentimentRes, mentalHealthRes] = await Promise.all([
+                    fetch(`${config.apiUrl}/analyze/sentiment`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            prompt: message,
+                            session_id: this.sessionId
+                        })
+                    }),
+                    fetch(`${config.apiUrl}/analyze/mental-health`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            prompt: message,
+                            session_id: this.sessionId
+                        })
+                    })
+                ]);
+
+                const sentimentData = await sentimentRes.json();
+                const mentalHealthData = await mentalHealthRes.json();
+                
+                // Save user message with analysis metadata
+                this.chatHistory.push({ 
+                    message, 
+                    isUser: true,
+                    metadata: {
+                        sentiment: sentimentData,
+                        mentalHealth: mentalHealthData
+                    }
+                });
+                
+                // Get main response
+                const response = await fetch(`${config.apiUrl}/generate/counsel`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: message,
+                        clear_history: false,
+                        session_id: this.sessionId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to get response: ${response.status} ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('Received response with key points:', result.key_points);
+                
+                // Remove any existing typing indicators first
+                const existingTypingContainers = this.chatMessages.querySelectorAll('.typing-container');
+                existingTypingContainers.forEach(container => container.remove());
+                
+                // Add the response with key points
+                this.addMessage(result.response, false);
+                this.chatHistory.push({ 
+                    message: result.response, 
+                    isUser: false,
+                    key_points: result.key_points
+                });
             }
-
-            const result = await response.json();
-            console.log('Received response with key points:', result.key_points);
             
-            // Remove any existing typing indicators first
-            const existingTypingContainers = this.chatMessages.querySelectorAll('.typing-container');
-            existingTypingContainers.forEach(container => container.remove());
-            
-            // Add the response with key points
-            this.addMessage(result.response, false);
-            this.chatHistory.push({ 
-                message: result.response, 
-                isUser: false,
-                key_points: result.key_points
-            });
-            
+            // Save chat history
             this.saveChatHistory();
             
         } catch (error) {
-            console.error('Error:', error);
-            // Remove any existing typing indicators first
+            console.error('Error in handleMessageSubmit:', error);
+            // Remove typing indicator
             const existingTypingContainers = this.chatMessages.querySelectorAll('.typing-container');
             existingTypingContainers.forEach(container => container.remove());
             
-            this.addMessage('Sorry, I encountered an error. Please try again.', false);
+            this.addMessage('I apologize, but I encountered an error. Please try again.', false);
         } finally {
+            // Re-enable input
             this.setWaitingState(false);
         }
+    },
+
+    async pollForResult(jobId) {
+        const maxAttempts = 30; // Maximum number of polling attempts
+        const pollInterval = 2000; // Poll every 2 seconds
+        
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+                const response = await fetch(`${config.statusUrl}/${jobId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.status === 'COMPLETED') {
+                    return data;
+                } else if (data.status === 'FAILED') {
+                    throw new Error('Job failed');
+                }
+
+                // Wait before next poll
+                await new Promise(resolve => setTimeout(resolve, pollInterval));
+            } catch (error) {
+                console.error('Error polling for result:', error);
+                throw error;
+            }
+        }
+
+        throw new Error('Polling timeout');
     },
 
     handleInputChange() {
@@ -492,31 +564,60 @@ const chatManager = {
             this.showGreeting();
 
             // Then clear backend history
-            fetch(`${config.apiUrl}/clear/history`, { 
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    prompt: '',  // Required by PromptRequest model
-                    session_id: this.sessionId,
-                    clear_history: false
+            if (config.useRunPod) {
+                // RunPod clear history
+                fetch(config.apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${config.apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        input: {
+                            prompt: '',
+                            endpoint: 'clear-history',
+                            session_id: this.sessionId
+                        }
+                    })
                 })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Failed to clear history: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('History cleared successfully:', data);
-                showGreeting();
-            })
-            .catch(error => {
-                console.error('Error clearing history:', error);
-                // Even if backend clearing fails, frontend is already cleared
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to clear history: ${response.status} ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('History cleared successfully:', data);
+                })
+                .catch(error => {
+                    console.error('Error clearing history:', error);
+                });
+            } else {
+                // Local clear history
+                fetch(`${config.apiUrl}/clear/history`, { 
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: '',  // Required by PromptRequest model
+                        session_id: this.sessionId,
+                        clear_history: false
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to clear history: ${response.status} ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('History cleared successfully:', data);
+                })
+                .catch(error => {
+                    console.error('Error clearing history:', error);
+                });
+            }
         }
     }
 };
