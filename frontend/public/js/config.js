@@ -10,7 +10,7 @@ const config = {
     // RunPod API key - only used in production
     apiKey: isDevelopment 
         ? null  // No API key needed for local development
-        : window.RUNPOD_API_KEY, // Use the Vercel environment variable
+        : window.NEXT_PUBLIC_RUNPOD_API_KEY, // Use the Vercel environment variable
     
     // RunPod status endpoint
     statusUrl: isDevelopment
@@ -39,7 +39,7 @@ if (!isDevelopment) {
         console.error('Environment variable NEXT_PUBLIC_API_URL is not set!');
     }
     if (!config.apiKey) {
-        console.error('Environment variable RUNPOD_API_KEY is not set!');
+        console.error('Environment variable NEXT_PUBLIC_RUNPOD_API_KEY is not set!');
     }
 }
 
