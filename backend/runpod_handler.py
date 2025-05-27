@@ -1,11 +1,16 @@
 import runpod
 import json
+import uuid
 from api.inference import (
-    analyze_sentiment,
-    analyze_mental_health,
-    generate_counsel,
-    analyze_all,
-    TextRequest
+    predict_sentiment,
+    classify_mental_health,
+    generate_response,
+    clear_history,
+    AnalysisResponse,
+    SentimentResponse,
+    MentalHealthResponse,
+    LlamaResponse,
+    KeyPointsResponse
 )
 
 def handler(event):
@@ -16,49 +21,86 @@ def handler(event):
         # Get the input from the event
         input_data = event["input"]
         
-        # Create a TextRequest object
-        request = TextRequest(
-            prompt=input_data.get("prompt", ""),
-            clear_history=input_data.get("clear_history", False)
-        )
+        # Extract common parameters
+        prompt = input_data.get("prompt", "")
+        clear_history_flag = input_data.get("clear_history", False)
+        session_id = input_data.get("session_id", str(uuid.uuid4()))
         
         # Determine which endpoint to call based on the input
         endpoint = input_data.get("endpoint", "all")
         
         if endpoint == "sentiment":
-            result = analyze_sentiment(request)
+            result = predict_sentiment(prompt)
             return {
                 "status": "success",
                 "data": {
-                    "sentiment": result.sentiment,
-                    "probabilities": result.probabilities
+                    "sentiment": result["sentiment"],
+                    "probabilities": result["probabilities"]
                 }
             }
         elif endpoint == "mental-health":
-            result = analyze_mental_health(request)
+            result = classify_mental_health(prompt)
             return {
                 "status": "success",
                 "data": {
-                    "condition": result.condition,
-                    "probabilities": result.probabilities
+                    "condition": result["condition"],
+                    "probabilities": result["probabilities"]
                 }
             }
         elif endpoint == "counsel":
-            result = generate_counsel(request)
+            if clear_history_flag:
+                clear_history(session_id)
+            response, key_points = generate_response(prompt, session_id)
             return {
                 "status": "success",
                 "data": {
-                    "response": result.response
+                    "response": response,
+                    "key_points": key_points,
+                    "session_id": session_id
+                }
+            }
+        elif endpoint == "key-points":
+            from api.models.gemini_counsel import gemini_counsel
+            session = gemini_counsel.get_session(session_id)
+            return {
+                "status": "success",
+                "data": {
+                    "key_points": session['memorized_key_messages'],
+                    "session_id": session_id
+                }
+            }
+        elif endpoint == "clear-history":
+            if not session_id:
+                return {
+                    "status": "error",
+                    "error": "session_id is required"
+                }
+            clear_history(session_id)
+            return {
+                "status": "success",
+                "data": {
+                    "message": "History cleared successfully",
+                    "session_id": session_id
                 }
             }
         else:  # "all" endpoint
-            result = analyze_all(request)
+            # Clear history if requested
+            if clear_history_flag:
+                clear_history(session_id)
+                
+            # Get all analyses
+            sentiment_result = predict_sentiment(prompt)
+            mental_health_result = classify_mental_health(prompt)
+            response, key_points = generate_response(prompt, session_id)
+            
             return {
                 "status": "success",
                 "data": {
-                    "response": result.response,
-                    "sentiment": result.sentiment,
-                    "mental_health": result.mental_health
+                    "response": response,
+                    "sentiment": sentiment_result,
+                    "mental_health": mental_health_result,
+                    "key_points": key_points,
+                    "session_id": session_id
                 }
             }
             
