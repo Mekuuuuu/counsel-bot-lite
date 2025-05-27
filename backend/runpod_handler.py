@@ -1,7 +1,7 @@
 import runpod
 import json
 import uuid
-from api.inference import (
+from backend.api.inference import (
     predict_sentiment,
     classify_mental_health,
     generate_response,
@@ -60,7 +60,7 @@ def handler(event):
                 }
             }
         elif endpoint == "key-points":
-            from api.models.gemini_counsel import gemini_counsel
+            from backend.api.models.gemini_counsel import gemini_counsel
             session = gemini_counsel.get_session(session_id)
             return {
                 "status": "success",
